@@ -9,7 +9,7 @@
 </head>
 
 <body>
-    <audio src="http://radio.plaza.one/opus_64" crossorigin="anonymous"></audio>
+    <audio src="http://radio.plaza.one/opus_64" crossorigin="anonymous" preload="auto"></audio>
 
     <section class="section">
         <div class="container">
@@ -21,11 +21,15 @@
             </p>
         </div>
     </section>
+
     <section class="section">
         <div class="container">
             <button class="button" data-playing="false" role="switch" aria-checked="false">
                 <span>Play/Pause</span> <!--TODO: make this an icon, not text-->
             </button>
+        </div>
+        <div class="container">
+            <canvas id="waveform" width="400" height="50"></canvas>
         </div>
     </section>
 </body>
@@ -37,42 +41,91 @@
     const audioElement = document.querySelector('audio');
     const track = audioContext.createMediaElementSource(audioElement); //give the audioContext our track
     
-    track.connect(audioContext.destination);
+    //visualizer
+    var canvas = document.querySelector('canvas')
+    canvas.width = window.innerWidth * 0.8;
+    var canvasContext = canvas.getContext("2d");
+    const HEIGHT = canvas.height, WIDTH = canvas.width;
+
+    var analyser = audioContext.createAnalyser();
+    track.connect(analyser);
     
+    analyser.fftSize = 2048;
+    var bufferLength = analyser.fftSize;
+    var dataArray = new Uint8Array(bufferLength);
+
     
+   
+    canvasContext.clearRect(0,0,WIDTH,HEIGHT); //TODO: make these not hardcoded in
+    
+    function draw() {
+        var drawVisual = requestAnimationFrame(draw);
+        analyser.getByteTimeDomainData(dataArray);
+        canvasContext.fillStyle = 'rgb(200, 200, 200)';
+        canvasContext.fillRect(0, 0, WIDTH, HEIGHT);
+
+        canvasContext.lineWidth = 2;
+        canvasContext.strokeStyle = 'rgb(0, 0, 0)';
+        canvasContext.beginPath();
+
+        var sliceWidth = WIDTH * 1.0 / bufferLength;
+        var x = 0;
+
+        for (var i = 0; i < bufferLength; i++) {
+            var v = dataArray[i] / 128.0;
+            var y = v * HEIGHT/2;
+
+            if(i === 0) {
+                canvasContext.moveTo(x, y);
+            } else {
+                canvasContext.lineTo(x, y);
+            }
+
+            x += sliceWidth;
+
+            
+        }
+        canvasContext.lineTo(WIDTH, HEIGHT/2);
+        canvasContext.stroke();
+        
+    }
+
+
+    draw();
+
+
+
+    
+
+
+
+    analyser.connect(audioContext.destination);
+
+    //playPause
     function togglePlayPause()
     {
         if (audioContext.state === 'suspended') {
             audioContext.resume();
+            console.log("resumming");
         }
     
         if (this.dataset.playing === 'false') {
             audioElement.play();
             this.dataset.playing = 'true';
+            console.log("Playing");
         } else if (this.dataset.playing === 'true') {
             audioElement.pause();
             this.dataset.playing = false;
+            console.log("Pausing");
         }
     }
     
     const playButton = document.querySelector('button');
-    playButton.addEventListener('click', function()
-    {
-        if (audioContext.state === 'suspended') {
-            audioContext.resume();
-        }
-    
-        if (this.dataset.playing === 'false') {
-            audioElement.play();
-            this.dataset.playing = 'true';
-        } else if (this.dataset.playing === 'true') {
-            audioElement.pause();
-            this.dataset.playing = false;
-        }
-    }, false)
+    playButton.addEventListener('click', togglePlayPause, false)
     
     audioElement.addEventListener('ended', () => {
         playButton.dataset.playing = 'false';
+        console.log("ended");
     }, false)
     
     </script>
