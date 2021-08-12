@@ -9,6 +9,8 @@
 </head>
 
 <body>
+    <audio src="http://radio.plaza.one/opus_64" crossorigin="anonymous"></audio>
+
     <section class="section">
         <div class="container">
             <h1 class="title">
@@ -19,6 +21,60 @@
             </p>
         </div>
     </section>
+    <section class="section">
+        <div class="container">
+            <button class="button" data-playing="false" role="switch" aria-checked="false">
+                <span>Play/Pause</span> <!--TODO: make this an icon, not text-->
+            </button>
+        </div>
+    </section>
 </body>
+
+
+<script>
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    const audioContext = new AudioContext(); 
+    const audioElement = document.querySelector('audio');
+    const track = audioContext.createMediaElementSource(audioElement); //give the audioContext our track
+    
+    track.connect(audioContext.destination);
+    
+    
+    function togglePlayPause()
+    {
+        if (audioContext.state === 'suspended') {
+            audioContext.resume();
+        }
+    
+        if (this.dataset.playing === 'false') {
+            audioElement.play();
+            this.dataset.playing = 'true';
+        } else if (this.dataset.playing === 'true') {
+            audioElement.pause();
+            this.dataset.playing = false;
+        }
+    }
+    
+    const playButton = document.querySelector('button');
+    playButton.addEventListener('click', function()
+    {
+        if (audioContext.state === 'suspended') {
+            audioContext.resume();
+        }
+    
+        if (this.dataset.playing === 'false') {
+            audioElement.play();
+            this.dataset.playing = 'true';
+        } else if (this.dataset.playing === 'true') {
+            audioElement.pause();
+            this.dataset.playing = false;
+        }
+    }, false)
+    
+    audioElement.addEventListener('ended', () => {
+        playButton.dataset.playing = 'false';
+    }, false)
+    
+    </script>
 
 </html>
